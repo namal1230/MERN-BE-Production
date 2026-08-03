@@ -17,7 +17,9 @@ spec:
       automountServiceAccountToken: false
       containers:
         - name: blog-phost-be
-          image: namaldil/saas-backend:1.0.0
+          image: namaldil/saas-backend:latest
+          imagePullSecrets:
+            - name: my-registry-secret
           imagePullPolicy: IfNotPresent
           workingDir: /app
           ports:
