@@ -13,10 +13,10 @@ spec:
       releaseName: express-chart
   destination:
     server: https://kubernetes.default.svc
-    namespace: default
+    namespace: saas-app-backend # auto create namespace
   syncPolicy:
     automated:
-      prune: true
-      selfHeal: true
+      prune: true # Delete automatically
+      selfHeal: true # Sync automatically
     syncOptions:
       - CreateNamespace=true
