@@ -38,5 +38,8 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 # Expose port
 EXPOSE 3000
 
+# Run as root because the base image does not include a passwd entry for nonroot
+USER 0
+
 # Start application
 CMD ["node", "dist/index.js"]
