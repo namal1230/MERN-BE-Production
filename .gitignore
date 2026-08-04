@@ -35,3 +35,9 @@ yarn-error.log
 Thumbs.db
 
 secret.example.yaml
+
+.terraform/
+*.tfstate
+*.tfstate.*
+terraform.tfvars
+*.auto.tfvars
