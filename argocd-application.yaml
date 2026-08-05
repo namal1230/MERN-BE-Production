@@ -11,6 +11,11 @@ spec:
     path: express-chart
     helm:
       releaseName: express-chart
+      values: |
+        image:
+          repository: namaldil/saas-backend
+          tag: "1.0.0"
+          pullPolicy: Always
   destination:
     server: https://kubernetes.default.svc
     namespace: saas-app-backend # auto create namespace
@@ -20,10 +25,3 @@ spec:
       selfHeal: true # Sync automatically
     syncOptions:
       - CreateNamespace=true
-image:
-  repository: namaldil/saas-backend
-  tag: "1.0.0"
-  pullPolicy: Always
-
-imagePullSecrets:
-  - name: my-registry-secret

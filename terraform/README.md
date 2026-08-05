@@ -4,10 +4,9 @@ This directory contains a starter Terraform configuration for deploying the back
 
 ## What it provisions
 - VPC, public subnets, internet gateway, and route table
-- Application Load Balancer
-- ECS Fargate cluster and service
-- CloudWatch log group
-- Container task definition for the Node.js app
+- EKS cluster and managed node group
+- ECR repository for container image storage
+- CloudWatch log group for future cluster logging and diagnostics
 
 ## Prerequisites
 - Terraform installed

@@ -169,19 +169,6 @@ resource "aws_lb_listener" "http" {
   }
 }
 
-resource "aws_ecr_repository" "app" {
-  name                 = local.app_name
-  image_tag_mutability = "MUTABLE"
-
-  image_scanning_configuration {
-    scan_on_push = true
-  }
-
-  tags = {
-    Name = "${local.app_name}-ecr"
-  }
-}
-
 resource "aws_ecs_cluster" "main" {
   name = "${local.app_name}-cluster"
 }
@@ -307,12 +294,161 @@ resource "aws_ecs_service" "app" {
   depends_on = [aws_lb_listener.http]
 }
 
-output "alb_dns_name" {
-  value = aws_lb.app.dns_name
+resource "aws_security_group" "eks" {
+  name        = "${local.app_name}-eks-sg"
+  description = "EKS worker node security group"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    self        = true
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_iam_role" "eks_cluster" {
+  name = "${local.app_name}-eks-cluster-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "eks.amazonaws.com"
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "eks_cluster_AmazonEKSClusterPolicy" {
+  role       = aws_iam_role.eks_cluster.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
+}
+
+resource "aws_iam_role_policy_attachment" "eks_cluster_AmazonEKSServicePolicy" {
+  role       = aws_iam_role.eks_cluster.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSServicePolicy"
+}
+
+resource "aws_iam_role" "eks_node_group" {
+  name = "${local.app_name}-eks-node-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "eks_node_AmazonEKSWorkerNodePolicy" {
+  role       = aws_iam_role.eks_node_group.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
+}
+
+resource "aws_iam_role_policy_attachment" "eks_node_AmazonEKS_CNI_Policy" {
+  role       = aws_iam_role.eks_node_group.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
+}
+
+resource "aws_iam_role_policy_attachment" "eks_node_AmazonEC2ContainerRegistryReadOnly" {
+  role       = aws_iam_role.eks_node_group.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+}
+
+resource "aws_eks_cluster" "main" {
+  name     = "${local.app_name}-eks"
+  role_arn = aws_iam_role.eks_cluster.arn
+
+  vpc_config {
+    subnet_ids         = [aws_subnet.public_a.id, aws_subnet.public_b.id]
+    security_group_ids = [aws_security_group.eks.id]
+    endpoint_public_access = true
+    public_access_cidrs     = ["0.0.0.0/0"]
+  }
+
+  depends_on = [
+    aws_iam_role_policy_attachment.eks_cluster_AmazonEKSClusterPolicy,
+    aws_iam_role_policy_attachment.eks_cluster_AmazonEKSServicePolicy,
+  ]
+}
+
+resource "aws_eks_node_group" "main" {
+  cluster_name    = aws_eks_cluster.main.name
+  node_group_name = "${local.app_name}-node-group"
+  node_role_arn   = aws_iam_role.eks_node_group.arn
+  subnet_ids      = [aws_subnet.public_a.id, aws_subnet.public_b.id]
+
+  scaling_config {
+    desired_size = 1
+    min_size     = 1
+    max_size     = 2
+  }
+
+  instance_types      = ["t3.medium"]
+  disk_size          = 20
+  capacity_type      = "ON_DEMAND"
+  force_update_version = true
+
+  depends_on = [
+    aws_iam_role_policy_attachment.eks_node_AmazonEKSWorkerNodePolicy,
+    aws_iam_role_policy_attachment.eks_node_AmazonEKS_CNI_Policy,
+    aws_iam_role_policy_attachment.eks_node_AmazonEC2ContainerRegistryReadOnly,
+  ]
+}
+
+resource "aws_ecr_repository" "app" {
+  name                 = local.app_name
+  image_tag_mutability = "MUTABLE"
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+
+  tags = {
+    Name = "${local.app_name}-ecr"
+  }
+}
+
+output "eks_cluster_name" {
+  value = aws_eks_cluster.main.name
+}
+
+output "eks_cluster_endpoint" {
+  value = aws_eks_cluster.main.endpoint
+}
+
+output "eks_cluster_certificate_authority_data" {
+  value = aws_eks_cluster.main.certificate_authority[0].data
+}
+
+output "eks_node_group_name" {
+  value = aws_eks_node_group.main.node_group_name
 }
 
 output "ecs_service_name" {
   value = aws_ecs_service.app.name
+}
+
+output "alb_dns_name" {
+  value = aws_lb.app.dns_name
 }
 
 output "ecr_repository_url" {
