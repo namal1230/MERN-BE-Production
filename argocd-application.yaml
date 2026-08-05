@@ -14,8 +14,9 @@ spec:
       values: |
         image:
           repository: namaldil/saas-backend
-          tag: "1.0.0"
+          tag: latest
           pullPolicy: Always
+        imagePullSecrets: []
   destination:
     server: https://kubernetes.default.svc
     namespace: saas-app-backend # auto create namespace

@@ -18,8 +18,6 @@ spec:
       containers:
         - name: blog-phost-be
           image: namaldil/saas-backend:latest
-          imagePullSecrets:
-            - name: my-registry-secret
           imagePullPolicy: IfNotPresent
           workingDir: /app
           ports:
