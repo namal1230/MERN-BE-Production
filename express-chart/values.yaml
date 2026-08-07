@@ -3,11 +3,11 @@
 # Declare variables to be passed into your templates.
 
 # This will set the replicaset count more information can be found here: https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/
-replicaCount: 1
+replicaCount: 2
 
 # This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
 image:
-  repository: namaldil/saas-backend
+  repository: 624627192953.dkr.ecr.ap-south-1.amazonaws.com/saas-backendrepo
   # This sets the pull policy for images.
   pullPolicy: Always
   # Use a specific immutable tag instead of latest.
